@@ -167,10 +167,113 @@ fn another_function() {
 ** Function parameters
 #+begin_src rust
 fn main() {
-    another_function(5);
+    another_function(5, 10);
 }
 
-fn another_function(x: i32) {
-    println!("another function");
+fn another_function(x: i32, y: i32) {
+    println!("x is {} and y is {}", x, y);
+}
+#+end_src
+
++ *must annotate type*
+
+** Function bodies contain statements and expressions
++ *statements* are instructions that perform some action and do not return a value
++ *expressions* evaluate to a resulting value
+#+begin_src rust
+let x = 5; // statement
+
+let y = { // this block is an expression
+    let x = 3;
+    x + 1 // also an expression
+};
+#+end_src
+
+** Functions with return values
+#+begin_src rust
+fn plus_one(x: i32) -> i32 {
+    x + 1
+}
+
+fn main() {
+    let x = plus_one(5);
+
+    println!("x is {}", x);
+}
+#+end_src
+
+* Control flow
+** ~if~
+#+begin_src rust
+let number = 3;
+
+if number % 5 == 0 {
+    // do something
+} else if number % 3 == 0 {
+    // do some other thing
+} else {
+    // ...
+}
+#+end_src
+
++ in a ~let~ statement
+#+begin_src rust
+let condition = true;
+let number = if condition { 5 } else { 6 };
+
+// types must be compatible !!
+let number = if condition { 5 } else { "six" }; // will not work!!
+#+end_src
+
+** ~loop~
++ acts as ~while true~
+#+begin_src rust
+loop {
+    println!("again!");
+}
+#+end_src
+
++ returning values from loops
+#+begin_src rust
+let mut counter = 0;
+
+let result = loop {
+    counter += 1;
+
+    if counter == 10 {
+        break counter * 2;
+    }
+};
+#+end_src
+
+** ~while~
+#+begin_src rust
+let mut number = 3;
+
+while number != 0 {
+    number -= 1;
+}
+#+end_src
+
+** ~for~
++ iterating throught a collection
+#+begin_src rust
+let a = [10, 20, 30, 40, 50];
+
+for element in a.iter() {
+    println!("the value is: {}", element);
+}
+#+end_src
+
++ iteranting over a range
+#+begin_src rust
+// going up
+for number in (1..4) {
+    println!("{}", number);
+}
+
+// going down (reverse)
+for number in (1..4).rev() {
+    println!("{}", number);
 }
 #+end_src
