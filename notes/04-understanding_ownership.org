@@ -1,6 +1,6 @@
 #+TITLE: Understanding Ownership
 
-* What is Ownership?
+* What is ownership?
 + enables rust to make memory safety guarantees (checked at compile time) *without needing a garbage collector*
 
 ** the stack and the heap
@@ -186,3 +186,89 @@ fn calculate_length(s: String) -> (String, usize) {
     (s, length)
 }
 #+end_src
+
+* References and borrowing
++ what if we want to use ~s1~ after passing it to ~calculate_length~
++ here's an example of using /reference/ instead of taking ownership of the value:
++ *scope ends at last time it's used*
+#+begin_src rust
+fn main() {
+    let s1 = String::from("hello");
+    let len = calculate_length(&s1);
+    println!("the length of '{}' if {}", s1, len);
+}
+
+fn calculate_length(s: &String) -> usize {
+    s.len()
+}
+#+end_src
++ references allow us to refer to some value without taking ownership!
++ what happens if we try to modify something we're borrowing?
+  - *it doesn't work!!!!*
+
+** Mutable references
+#+begin_src rust
+fn main() {
+    let mut s = String::from("hello");
+
+    change(&mut s);
+}
+
+fn change(some_string: &mut String) {
+    some_string.push_str(", world");
+}
+#+end_src
++ *you can have only one mutable reference to a particular piece of data in a particular scope*
+  - prevents /data races/
++ *you can't have a mutable and an imutable reference*
+
+** Dangling references
++ you can't have that in rust
++ if you have a reference to some data, the compiler will ensure that the data will not go out of scope before the reference to the data does
+
+* The slice type
+#+begin_src rust
+let s = String::from("hello world");
+
+let hello = &s[..5];
+let world = &s[6..11];
+#+end_src
+
++ it's a reference to a portion of the string
+
+#+begin_src rust
+fn first_word(s: &String) -> &str {
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[0..i];
+        }
+    }
+
+    &s[..]
+}
+#+end_src
+
++ now we get back a value that is tied to the underlying data
+#+begin_src rust
+fn main() {
+    let mut s = String::from("hello world");
+
+    let word = first_word(&s); // immutable borrow
+
+    s.clear(); // error! mutable borrow
+
+    println!("the first word is: {}", word); // immutable borrow used here
+}
+#+end_src
+
+** String literals are slices
++ so we can improve your function signature to:
+#+begin_src rust
+fn first_word(s: &str) -> &str
+#+end_src
++ because it allows the use of both ~&String~ and ~&str~
+
+** Other slices
++ there are slices for other collections (like ~&[i32]~)
