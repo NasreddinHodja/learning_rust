@@ -1,0 +1,188 @@
+#+TITLE: Understanding Ownership
+
+* What is Ownership?
++ enables rust to make memory safety guarantees (checked at compile time) *without needing a garbage collector*
+
+** the stack and the heap
++ in rust, whether a value is on the stack or the heap has more of an effect on how the language behaves and why you have to make certain decisions
+
++ the <<stack>>
+  - LIFO
+  - data stored must have *fixed size*
+  - when a function is called, the values passes into the function and the function's local varialbes get pushed onto the stack and popped when function is over
+  - faster
+
++ the <<heap>>
+  - data with unknown size at compile time or size that may vary
+  - /allocating/ on the heap:
+    1) when you put data on the heap, you request a certain amount of space
+    2) memory alocator finds an empty spot in the heap that is big enough, marks it as being in use, and returns a pointer (addr of that location)
+  - slower
+
+** Ownership rules
++ each value in rust has a variable that's called its /owner/
++ there can only be one owner at a time
++ when the owner goes out of scope, the value will be dropped
+
+** Variable scope
++ a /scope/ is the range within a program for which an item is valid
++ pretty much the same as other languages
++ 2 ways rust deals with memory and variables:
+  a. variables stored in the [[stack]]
+     1) when a var enters scope, it's value is pushed to the [[stack]]
+     2) when a var exits scope, it' value is popped of the [[stack]]
+  b. variables stored in the [[heap]]
+     1) when a var enters scope, memory is allocated on the heap for it's value
+     2) when var exits scope, memory corresponding to the value owned by it is deallocated
+        - ~drop~ is a function where the author of ~String~ can put the code to return the memory
+        - rust calls ~drop~ automatically when exiting scope
+
++ *because there is only one owner at a time, we will always pair an allocate with a deallocate!*
++ *this is [[https://en.cppreference.com/w/cpp/language/raii][RAII]]!*
+
+** Move
++ when using [[stack]] values:
+#+begin_src rust
+let x = 5;
+let y = x;
+#+end_src
+  - we bind value =5= to ~x~
+  - we copy the value of ~x~ and bind it to ~y~
+
++ when using [[heap]] values:
+#+begin_src rust
+let s1 = String::from("hello");
+let s2 = s1; // *move*
+
+println!("s1 = {}", s1); // error! value borrowed here after move
+#+end_src
+  - we bind a value to ~s1~
+  - ownership of that value *moves* from ~s1~ to ~s2~ and ~s1~ is invalidated
+  - therefore, no memory is freed when ~s1~ goes out of scope
+  - *move* is inexpensive!
+
+** Clone
+#+begin_src rust
+let s1 = String::from("hello");
+let s2 = s1.clone(); // *clone*
+
+println!("s1 = {}", s1); // no error! s1 is still valid
+#+end_src
++ if we do want a deep copy of the heap data, we can call a common method called ~clone~
++ may be expensive
+
+** Copy
++ for stack-only data
++ copies of stack-only data are quick to make
++ the ~Copy~ trait
+  - types that implement a ~Copy~ trait have this behaviour
+  - cant implement on a type or any of its parts have the ~Drop~ trait
+
+** Ownership and functions
++ passing a value to a function will move or copy, just as assignment does
+#+begin_src rust
+fn main() {
+    let s = String::from("hello");  // s comes into scope
+
+    takes_ownership(s);             // s's value moves into the function...
+                                    // ... and so is no longer valid here
+
+    let x = 5;                      // x comes into scope
+
+    makes_copy(x);                  // x would move into the function,
+                                    // but i32 is Copy, so it's okay to still
+                                    // use x afterward
+
+} // Here, x goes out of scope, then s. But because s's value was moved, nothing
+  // special happens.
+
+fn takes_ownership(some_string: String) { // some_string comes into scope
+    println!("{}", some_string);
+} // Here, some_string goes out of scope and `drop` is called. The backing
+  // memory is freed.
+
+fn makes_copy(some_integer: i32) { // some_integer comes into scope
+    println!("{}", some_integer);
+} // Here, some_integer goes out of scope. Nothing special happens.
+#+end_src
+
+** Return values and scope
++ returning values can transfer ownership
+#+begin_src rust
+fn main() {
+    let s1 = gives_ownership();         // gives_ownership moves its return
+                                        // value into s1
+
+    let s2 = String::from("hello");     // s2 comes into scope
+
+    let s3 = takes_and_gives_back(s2);  // s2 is moved into
+                                        // takes_and_gives_back, which also
+                                        // moves its return value into s3
+} // Here, s3 goes out of scope and is dropped. s2 goes out of scope but was
+  // moved, so nothing happens. s1 goes out of scope and is dropped.
+
+fn gives_ownership() -> String {             // gives_ownership will move its
+                                             // return value into the function
+                                             // that calls it
+
+    let some_string = String::from("hello"); // some_string comes into scope
+
+    some_string                              // some_string is returned and
+                                             // moves out to the calling
+                                             // function
+}
+
+// takes_and_gives_back will take a String and return one
+fn takes_and_gives_back(a_string: String) -> String { // a_string comes into
+                                                      // scope
+
+    a_string  // a_string is returned and moves out to the calling function
+}
+#+end_src
+
++ it's possible to return multiple values using a tuple
+#+begin_src rust
+fn main() {
+    let s1 = gives_ownership();         // gives_ownership moves its return
+                                        // value into s1
+
+    let s2 = String::from("hello");     // s2 comes into scope
+
+    let s3 = takes_and_gives_back(s2);  // s2 is moved into
+                                        // takes_and_gives_back, which also
+                                        // moves its return value into s3
+} // Here, s3 goes out of scope and is dropped. s2 goes out of scope but was
+  // moved, so nothing happens. s1 goes out of scope and is dropped.
+
+fn gives_ownership() -> String {             // gives_ownership will move its
+                                             // return value into the function
+                                             // that calls it
+
+    let some_string = String::from("hello"); // some_string comes into scope
+
+    some_string                              // some_string is returned and
+                                             // moves out to the calling
+                                             // function
+}
+
+// takes_and_gives_back will take a String and return one
+fn takes_and_gives_back(a_string: String) -> String { // a_string comes into
+                                                      // scope
+
+    a_string  // a_string is returned and moves out to the calling function
+}
+
+fn main() {
+    let s1 = String::from("hello");
+
+    let (s2, len) = calculate_length(s1);
+
+    println!("The length of '{}' is {}.", s2, len);
+}
+
+fn calculate_length(s: String) -> (String, usize) {
+    let length = s.len(); // len() returns the length of a String
+
+    (s, length)
+}
+#+end_src
