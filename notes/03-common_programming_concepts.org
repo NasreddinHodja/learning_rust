@@ -17,20 +17,22 @@ x = 5;
   - with smaller data structures, creating new instances and writing in a more /functional programming/ style may be easier to thing through, so lower performance might be a worthwhile penalty for gaining that clarity
 
 ** Differences between variables and constants
-+ declare constant using ~const~ instead of ~let~
-+ constants can be declared in any scope
-+ constants may be set only to a /constant expression/, not the result of a function call or any other value that could be /computed at runtime/
 #+begin_src rust
 const MAX_POINTS: u32 = 100_000;
 #+end_src
 
++ declare constant using ~const~ instead of ~let~
++ constants can be declared in any scope
++ constants may be set only to a /constant expression/, not the result of a function call or any other value that could be /computed at runtime/
+
 ** Shadowing
-+ to declare a new var with the same name as a previous var
-+ we can change the type of the value
 #+begin_src rust
 let x = 5;
 let x = "oie";
 #+end_src
+
++ to declare a new var with the same name as a previous var
++ we can change the type of the value
 
 * Data types
 + rust is a /statically typed/ language
@@ -76,13 +78,14 @@ let x = "oie";
   - integer types default to ~i32~: the fastest type (even in 64-bit architectures)
 
 *** Floating-point types
-+ =f32= and =f64=
-+ respesented according to the [[https://en.wikipedia.org/wiki/IEEE_754][IEE-754 standard]]
-+ =f64= is default
 #+begin_src rust
 let x = 2.0;        // f64
 let y: f32 = 3.0;   // f32
 #+end_src
+
++ =f32= and =f64=
++ respesented according to the [[https://en.wikipedia.org/wiki/IEEE_754][IEE-754 standard]]
++ =f64= is default
 
 *** Boolean type
 #+begin_src rust
@@ -91,17 +94,16 @@ let f: bool = false; // with explicit annotation
 #+end_src
 
 *** Character type
-+ specified with single quotes
-+ 4 bytes in size
-+ represents a [[https://en.wikipedia.org/wiki/Unicode][unicode scalar value]]
-  - more than just ASCII!
-
 #+begin_src rust
 let c = 'z';
 let z = 'ℤ';
 let heart_eyed_cat = '😻';
 #+end_src
 
++ specified with single quotes
++ 4 bytes in size
++ represents a [[https://en.wikipedia.org/wiki/Unicode][unicode scalar value]]
+  - more than just ASCII!
 + unicode scalar values range from =U+0000= to =U+D7FF= and =U+E000= to =U+10FFFF= inclusive
 + a "character" isn’t really a concept in unicode, so your human intuition for what a "character" is may not match up with what a char is in rust
 
@@ -112,10 +114,6 @@ let heart_eyed_cat = '😻';
   - [[*Array type][arrays]]
 
 *** Tuple type
-+ groups together a number of values
-+ *values grouped don't have to be the same type*
-+ fixed length
-
 #+begin_src rust
 let tup: (i32, f65, u8) = (500, 6.4, 1);
 
@@ -125,6 +123,10 @@ let (x, y, z) = tup;
 // we can access a tuple element by index
 let five_hundred = tup.0;
 #+end_src
+
++ groups together a number of values
++ *values grouped don't have to be the same type*
++ fixed length
 
 *** Array type
 + *all stored have to have same type*
@@ -163,3 +165,12 @@ fn another_function() {
 #+end_src
 
 ** Function parameters
+#+begin_src rust
+fn main() {
+    another_function(5);
+}
+
+fn another_function(x: i32) {
+    println!("another function");
+}
+#+end_src
