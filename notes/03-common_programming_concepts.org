@@ -1,0 +1,119 @@
+#+TITLE: Common Programming Concepts
+
+* Variables and Mutability
++ by default, vars are *immutable*
+ #+begin_src rust
+let x = 5;
+x = 5;  // ERROR!!! cannot assign twice to immutable variable x
+ #+end_src
++ ~mut~ allows the var to be *mutable*
+ #+begin_src rust
+let mut x = 5;
+x = 5;
+ #+end_src
+
++ *there are multiple trade-offs to consider in addition to the prevention of bugs*
+  - when you use large data structures, it may be better to mutate the instance in place rather than copying and returning newly allocated instances
+  - with smaller data structures, creating new instances and writing in a more /functional programming/ style may be easier to thing through, so lower performance might be a worthwhile penalty for gaining that clarity
+
+** Differences between variables and constants
++ declare constant using ~const~ instead of ~let~
++ constants can be declared in any scope
++ constants may be set only to a /constant expression/, not the result of a function call or any other value that could be /computed at runtime/
+#+begin_src rust
+const MAX_POINTS: u32 = 100_000;
+#+end_src
+
+** Shadowing
++ to declare a new var with the same name as a previous var
++ we can change the type of the value
+#+begin_src rust
+let x = 5;
+let x = "oie";
+#+end_src
+
+* Data types
++ rust is a /statically typed/ language
++ usually, the compiler guesses the correct type
+  - it will ask you to specity a type when multiple types are possible
++ every value in rust is of a certain /data type/
++ we'll look at 2 data type subsets: [[*Scalar types][scalar]] and [[*Compound types][compound]]
+
+** Scalar types
++ represents a *single value*
++ rust has 4 primary scalar types
+  - [[*Integer types][integers]]
+  - [[*Floating-point types][floating-point numbers]]
+  - [[*Boolean type][Booleans]]
+  - [[*Character type][characters]]
+
+*** Integer types
+#+name: integer types in rust
+| length  | signed | unsigned |
+|---------+--------+----------|
+| 8-bit   | =i8=     | =u8=       |
+| 16-bit  | =i16=    | =u16=      |
+| 32-bit  | =i32=    | =u32=      |
+| 64-bit  | =i64=    | =u64=      |
+| 128-bit | =i128=   | =u128=     |
+| arch    | =isize=  | =usize=    |
+
++ signed numbers are stored using [[https://en.wikipedia.org/wiki/Two%27s_complement][2's complement]]
++ =isize= and =usize= types depend on the architecture you're running on (32-bit or 64-bit)
++ all number literals except the byte literal allow a type suffix, such as ~57u8~, and ~_~ as a visual separator, such as ~1_000~
+
+#+name: integer literals in rust
+| number literals | example     |
+|-----------------+-------------|
+| decimal         | ~98_222~      |
+| hex             | ~0xff~        |
+| octal           | ~0o77~        |
+| binary          | ~0b1111_0000~ |
+| byte (=u8= only)  | ~b'A'~        |
+
++ which type to choose?
+  - rust defaults are usually good choices
+  - integer types default to ~i32~: the fastest type (even in 64-bit architectures)
+
+*** Floating-point types
++ =f32= and =f64=
++ respesented according to the [[https://en.wikipedia.org/wiki/IEEE_754][IEE-754 standard]]
++ =f64= is default
+#+begin_src rust
+let x = 2.0;        // f64
+let y: f32 = 3.0;   // f32
+#+end_src
+
+*** Boolean type
+#+begin_src rust
+let t = true;
+let f: bool = false; // with explicit annotation
+#+end_src
+
+*** Character type
++ specified with single quotes
++ 4 bytes in size
++ represents a [[https://en.wikipedia.org/wiki/Unicode][unicode scalar value]]
+  - more than just ASCII!
+
+#+begin_src rust
+let c = 'z';
+let z = 'ℤ';
+let heart_eyed_cat = '😻';
+#+end_src
+
++ unicode scalar values range from =U+0000= to =U+D7FF= and =U+E000= to =U+10FFFF= inclusive
++ a "character" isn’t really a concept in unicode, so your human intuition for what a "character" is may not match up with what a char is in rust
+
+** Compound types
++ can group multiple values into one type
++ rust has 2 primitive compound types:
+  - [[*Tuple type][tuples]]
+  - [[*Array type][arrays]]
+
+*** Tuple type
++ groups together a number of values
++ values grouped don't have to be the same type!
++ fixed length
+
+*** Array type
