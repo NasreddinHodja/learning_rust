@@ -1,0 +1,197 @@
+#+TITLE: Using struct to structure related data
+
+* Defining and instantiating structs
+#+begin_src rust
+struct User {
+    username: String,
+    email: String,
+    sign_in_count: u64,
+    active: bool,
+}
+
+let mut user1 = ser {
+    email: String::from("someone@example.com"),
+    username: String::from("someusername123"),
+    active: true,
+    sign_in_count: 1,
+};
+
+user1.email = String::from("anotheremail@example.com");
+#+end_src
+
+#+RESULTS:
+: error: Could not compile `cargoxhilpg`.
+
+** Field init shorthand
+#+begin_src rust
+fn build_user(email: String, username: String) -> User {
+    User {
+        email, // param has same name
+        username, // param has same name
+        active: true,
+        sign_in_count: 1,
+    }
+}
+#+end_src
+
+** Creating instances from other instances
+#+begin_src rust
+let user2 = User {
+    email: String::from("another@example.com"),
+    username: String::from("anotherusername"),
+    active: user1.active,
+    sign_in_count: user1.sign_in_count,
+}
+#+end_src
++ is the same as
+#+begin_src rust
+let user2 = User {
+    email: String::from("another@example.com"),
+    username: String::from("anotherusername"),
+    ..user1
+}
+#+end_src
+
+** Using tuple stucts without name fields to create different types
++ tuple stucts have the added meaning the struct name provides but don't have names associated with their fields
++ behave like tupples, each of a different type
+#+begin_src rust
+struct Color(i32, i32, i32);
+struct Point(i32, i32, i32);
+
+let black = Color(0, 0, 0);
+let origin = Point(0, 0, 0);
+#+end_src
+
+** Unlit-like structs without any fields
++ similar to =()=, the unit type
++ can be useful in situations in which you need to implement a trait on some type but don't have any data that you want to store in the type itself
+
+** Ownership of struct data
++ is previous example, we used the owned type =String= for fields instead of =&str=
+  - this is deliberate, we want the structure to own all its data and for that data to be valid for as long as the entire struct is valid
++ It’s possible for structs to store references to data owned by something else, but to do so requires the use of /lifetimes/, a Rust feature that we’ll discuss in Chapter 10
+
+* Example
++ let's write a program that calculates the area of a rectangle
+#+begin_src rust
+fn area(width: u32, height: u32) -> u32 {
+    width * height
+}
+
+fn main() {
+    let width1 = 30;
+    let height1 = 50;
+
+    println!("the area of the rect is {}", area(width1, height1));
+}
+#+end_src
+
+** Refactoring with tuples
+#+begin_src rust
+fn area(dimensions: (u32, u32)) -> u32 {
+    dimensions.0 * dimentions.1
+}
+
+fn main() {
+    let rect1 = (30, 50);
+
+    println!("the area of the rect is {}", area(rect1));
+}
+#+end_src
+
+** Refactoring with structs
+#+begin_src rust
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+// & indicates a borrow rather than taking ownership
+fn area(rect: &Rectangle) -> u32 {
+    rect.width * rect.height
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        height: 50,
+    };
+
+    println!("the area of the rect is {}", area(&rect1));
+}
+#+end_src
+
+#+RESULTS:
+: the area of the rect is 1500
+
+** Adding useful functionality with derived traits
++ it would be nice if we could print a string representation of the struct...
++ in format strings, we can use ~{:?}~ or ~{:#?}~ to tell ~println!~ that we want to use an output format called ~Debug~
++ the ~Debug~ trait enables us to print a str repres of our struct
+#+begin_src rust
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+fn area(rect: &Rectangle) -> u32 {
+    rect.width * rect.height
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        height: 50,
+    };
+
+    println!("the rect {:#?}\nhas area {}", rect1, area(&rect1));
+}
+#+end_src
+
+#+RESULTS:
+: the rect Rectangle {
+:     width: 30,
+:     height: 50,
+: }
+: has area 1500
+
+** Methods & associated functions
+#+begin_src rust
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    // method
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+
+    // method
+    fn can_hold(&self, other: &Rectangle) -> bool {
+        self.width > other.width && self.height > other.height
+    }
+
+    // associated function
+    fn square(size: u32) -> Rectangle {
+        Rectangle {
+            width: size,
+            height: size,
+        }
+    }
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        height: 50,
+    };
+
+    println!("the rect {:#?}\nhas area {}", rect1, area(&rect1));
+}
+#+end_src
++ we can have multiple ~impl~ blocks for a single struct

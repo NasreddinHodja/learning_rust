@@ -1,0 +1,84 @@
+#+title: Managing growign projects with cargo
+
+* Intro
++ *Packages*: a cargo feature that lets you build, test, and share creates
++ *Creates*: a tree of modules that produces a library or executable
++ *Modules* and *use*: let you control the organization, scope, and privacy of paths
++ *Paths*: a way of naming an item, such as a struct, function, or module
+
+* Packages and crates
++ a <<crate>> is a binary or a library
+  - the /crate root/ is a source fiel taht the rust compiler starts from and makes up the root module of your crate
++ a <<package>> is one or more crates that profide a set of functionality
+  - it contains a /Cargo.toml/ file that describes how to build those crates
+  - /must/ contain 0 or 1 library crates
+  - may contain as many binary crates as you'd like, but must contain at least 1 crate (binary or library)
+
+** Crating a package
+#+begin_src sh
+cargo new my-project
+#+end_src
+
+#+RESULTS:
+:   Created binary (application) `my-project` package
+
+#+begin_src sh
+cd my-project
+tre -all
+#+end_src
+
+#+RESULTS:
+: .
+: ├── src
+: │   └── main.rs
+: └── Cargo.toml
+
+#+begin_src
+bat Cargo.toml
+#+end_src
+: ───────┬────────────────────────────────────────────────────────────────────
+:        │ File: Cargo.toml
+: ───────┼────────────────────────────────────────────────────────────────────
+:    1   │ [package]
+:    2   │ name = "my-project"
+:    3   │ version = "0.1.0"
+:    4   │ edition = "2018"
+:    5   │
+:    6   │ # See more keys and their definitions at https://doc.rust-lang.org/
+:        │ cargo/reference/manifest.html
+:    7   │
+:    8   │ [dependencies]
+: ───────┴────────────────────────────────────────────────────────────────────
+
++ we see no mention of /src/main.rs/ because cargo follows a convention that /src/main.rs/ is the /crate root/ of a binary crate with the same name as the package
++ likewise, if we have /src/lib.rs/ the package contains a library crate with the same name as the package, and /src/lib.rs/ is its /crate root/
++ a package can have multiple binary crates by placing files in the /src/bin/ directory
+  - each file will be a separate binary crate
++ here, we have a project that only contains a /src/main.rs/ which means it only contains a binary crate named ~my-project~
+
+* Defining modules to control scope and privacy
++ *modules* let us organize code within a crate into groups for readability and reuse
++ they also control the /privacy/ of items
+  - /private/ code can't be used by outside code
+  - /public/ code can be used by outside code
+
+** Example
++ create a lib crate that provides the functionality for a restaurant
++ to structure our crate, we can organize the functions into nested modules
++ create a new lib named ~restaurant~
+  - ~cargo new --lib restaurant~
++ put this into /src/lib.rs/
+#+begin_src rust
+mod front_of_house {
+    mod hosting {
+        fn add_to_waitlist() {}
+        fn seat_at_table() {}
+    }
+
+    mod serving {
+        fn take_order() {}
+        fn serve_order() {}
+        fn take_payment() {}
+    }
+}
+#+end_src
