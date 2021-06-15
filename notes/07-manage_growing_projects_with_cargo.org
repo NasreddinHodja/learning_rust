@@ -270,3 +270,29 @@ use std::io::{self, Write};
 #+begin_src rust
 use std::collections::*;
 #+end_src
+
+* Separating modules into different files
++ let's use prev code as example
+
++ /src/lib.rs/
+#+begin_src rust
+mod front_of_house;
+
+pub use crate::front_of_hosue::hosting;
+
+pub fn eat_at_restaurant() {
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+}
+#+end_src
+
++ /src/front_of_house.rs/
+#+begin_src rust
+pub mod hosting;
+#+end_src
+
++ /src/front_of_house/hosting.rs/
+#+begin_src rust
+pub fn add_to_waitlist() {}
+#+end_src
