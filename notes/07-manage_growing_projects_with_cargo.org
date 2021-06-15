@@ -82,3 +82,191 @@ mod front_of_house {
     }
 }
 #+end_src
+
++ a module starts with ~mod~
++ the contents of either /src/main.rs/ or /src/lib.rs/ form a module named /crate/ at the root of the crate's module structure, known as the module tree
+#+begin_example
+crate
+ └── front_of_house
+     ├── hosting
+     │   ├── add_to_waitlist
+     │   └── seat_at_table
+     └── serving
+         ├── take_order
+         ├── serve_order
+         └── take_payment
+#+end_example
+
+* Paths for referring to an item in the module tree
++ if we want to call a function, we need to know its path
+  - /absolute path/ starts from a crate root by using a crate name or a literal ~crate~
+  - /relative path/ starts from the current module and uses ~self~, ~super~, or an identifier in the current module
+
+#+begin_src rust
+mod front_of_house {
+    mod hosting {
+        fn add_to_waitlist() {}
+    }
+}
+
+pub fn eat_at_restaurant() {
+    // absolute path
+    crate::front_of_house::hosting::add_to_waitlist();
+
+    // relative path
+    front_of_house::hosting::add_to_waitlist();
+}
+#+end_src
+
++ *ERROR* we can't do this!!!
+  - ~hosting~ and ~add_to_waitlist()~ are both private
+  - correcting:
+#+begin_src rust
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+
+pub fn eat_at_restaurant() {
+    // absolute path
+    crate::front_of_house::hosting::add_to_waitlist();
+
+    // relative path
+    front_of_house::hosting::add_to_waitlist();
+}
+#+end_src
+
+** Starting relative paths with ~super~
++ relative paths that begin at parent module
+#+begin_src rust
+fn serve_order() {}
+
+mod back_of_house {
+    fn fix_incorrect_order() {
+        cook_order();
+        super::serve_order();
+    }
+
+    fn cook_order() {}
+}
+#+end_src
+
+** Making structs with enums public
++ if we use ~pub~ to designate /structs/, we make the struct public but not its fields
++ if we use ~pub~ to designate /enums/, its variants are also public
+
+* Bring paths into scope with ~use~
+#+begin_src rust
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+
+use crate::front_of_house::hosting;
+
+// or, using relative path
+// use self::front_of_house::hosting;
+
+pub fn eat_at_restaurant() {
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+}
+#+end_src
+
+** Creating idiomatic ~use~ paths
++ when bringing a function into scope, the idiomatic way is to do ~use~ with its parent module
++ when bringing a /struct/ or /enum/ into scope, the idiomatic way is to do ~use~ with the full path
+#+begin_src rust
+use std::collections::HashMap;
+
+fn main() {
+    let mut map = HashMap::new();
+    map.insert(1, 2);
+}
+#+end_src
+
++ exception: 2 items with same name
+#+begin_src rust
+use std::fmt;
+use std::io;
+
+fn func1() -> fmt::Result {}
+
+fn func2() -> io::Result<()> {}
+#+end_src
+
+** Providing new names with ~as~
+#+begin_src rust
+use std::fmt::Result;
+use std::io::Result as IoResult;
+
+fn func1() -> Result {}
+
+fn func2() -> IoResult {}
+#+end_src
+
+** Rexporting names with ~pub use~
++ when we bring a name into scope with ~use~, the name available in the scope is private
++ to enable the code that calls our code to refer to that name as if it had been defined in that codes scope, we can use ~pub~ and ~use~
+
++ this is called /re-exporting/
+
+#+begin_src rust
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+
+pub use crate::front_of_house::hosting;
+
+pub fn eat_at_restaurant() {
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+}
+#+end_src
+
++ by using ~pub use~ external code can now call ~add_to_waitlist~ using ~hosting::add_to_waitlist~
++ if we hadn't used ~pub use~, ~eat_at_restaurant~ could call ~hosting::add_to_waitlist~ in its scope, but external code couldn't take advantage of this new path
+
++ with this, we can *write our own code with one structure but expose a different structure!!!*
+
+** Using external packages
+1. list packages in /Cargo.toml/
+2. ~use~ brings items from their crates into scope
+
+** Using nested paths to clean up large ~use~ lists
++ if we're using multiple items defined in the same create or same module, listing each item on its own line can take up a lot of space
+
++ using nested paths, we can turn:
+#+begin_src rust
+use std::cmp::Ordering;
+use std::io;
+#+end_src
+
++ into:
+#+begin_src rust
+use std::{cmp::Ordering, io};
+#+end_src
+
++ or:
+#+begin_src rust
+use std::io;
+use std::io::Write;
+#+end_src
+
++ into:
+#+begin_src rust
+use std::io::{self, Write};
+#+end_src
+
+** The glob operator
++ if we want to bring *all* public items
+
+#+begin_src rust
+use std::collections::*;
+#+end_src
