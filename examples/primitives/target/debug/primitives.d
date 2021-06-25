@@ -1,0 +1,1 @@
+/home/nasreddin/prog/learning_rust/examples/primitives/target/debug/primitives: /home/nasreddin/prog/learning_rust/examples/primitives/src/main.rs /home/nasreddin/prog/learning_rust/examples/primitives/src/tuples.rs

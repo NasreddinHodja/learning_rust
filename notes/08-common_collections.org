@@ -1,1 +1,124 @@
 #+TITLE: Common collections
+
+* Vectors
++ *stores values of same type*
++ puts components next to each other in memory
+#+begin_src rust
+fn main() {
+    let v: Vec<i32> = Vec::new();
+
+    // or, rust infers type
+
+    let v = vec![1, 2, 3]
+}
+#+end_src
+
++ *dropping vector drops its elements*
+#+begin_src rust
+{
+    let v = vec![1, 2, 3];
+
+    // do stuff with v
+} // <- v goes out of scope and is freed here
+#+end_src
+
++ pushing:
+#+begin_src rust
+fn main() {
+    let mut v = Vec::new();
+
+    v.push(5);
+    v.push(6);
+    v.push(7);
+    v.push(8);
+}
+#+end_src
+
++ reading:
+  - ~&[idx]~ gives ref
+    * when out of bounds, causes /panic/
+  - ~.get(idx)~ gives ~Option<&T>~
+    * when out of bounds, returns ~None~
+#+begin_src rust
+fn main() {
+    let v = vec![1, 2, 3, 4, 5];
+
+    let third: &i32 = &v[2];
+    println!("the third element is {}", third);
+
+    let _sixth: &i32;
+    match v.get(5) {
+        Some(_sixth) => println!("the 6th element is {}", _sixth),
+        None => println!("there is no 6th element"),
+    }
+}
+#+end_src
+
+#+RESULTS:
+: the third element is 3
+: there is no 6th element
+
++ borrows:
+  - following code does not compile
+  - why?
+    *adding an element to a vec might require allocating new mem and copying old elements to the new space!!!*
+#+begin_src rust
+fn main() {
+    let mut v = vec![1, 2, 3, 4, 5];
+
+    // immutable borrow
+    let first = &v[0];
+
+    // mutable borrow
+    v.push(6);
+
+    // use of immutable borrow
+    println!("the first element is: {}", first);
+}
+#+end_src
+
++ iterating:
+#+begin_src rust
+fn main() {
+    let mut v = vec![100, 32, 57];
+
+    for i in &v {
+        println!("{:>3}", i);
+    }
+
+    // or, using &mut
+
+    for i in &mut v {
+        print!("i  = {:>3} // ", i);
+        *i += 50;
+        print!("i' = {:>3}\n", i);
+    }
+}
+#+end_src
+
+#+RESULTS:
+: 100
+:  32
+:  57
+: i  = 100 // i' = 150
+: i  =  32 // i' =  82
+: i  =  57 // i' = 107
+
+** Store multiple types with enums
+#+begin_src rust
+fn main() {
+    enum SpreadsheetCell {
+        Int(i32),
+        Float(f64),
+        Text(String),
+    }
+
+    let row = vec![
+        SpreadsheetCell::Int(3),
+        SpreadsheetCell::Text(String::from("blue")),
+        SpreadsheetCell::Float(10.12),
+    ];
+}
+#+end_src
+
+* UTF-8 enconded text with strings
