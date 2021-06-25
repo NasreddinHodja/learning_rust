@@ -3,7 +3,7 @@
 * Vectors
 + *stores values of same type*
 + puts components next to each other in memory
-#+begin_src rust
+#+begin_src rust :export both
 fn main() {
     let v: Vec<i32> = Vec::new();
 
@@ -14,7 +14,7 @@ fn main() {
 #+end_src
 
 + *dropping vector drops its elements*
-#+begin_src rust
+#+begin_src rust :export both
 {
     let v = vec![1, 2, 3];
 
@@ -23,7 +23,7 @@ fn main() {
 #+end_src
 
 + pushing:
-#+begin_src rust
+#+begin_src rust :export both
 fn main() {
     let mut v = Vec::new();
 
@@ -39,7 +39,7 @@ fn main() {
     * when out of bounds, causes /panic/
   - ~.get(idx)~ gives ~Option<&T>~
     * when out of bounds, returns ~None~
-#+begin_src rust
+#+begin_src rust :export both
 fn main() {
     let v = vec![1, 2, 3, 4, 5];
 
@@ -62,7 +62,7 @@ fn main() {
   - following code does not compile
   - why?
     *adding an element to a vec might require allocating new mem and copying old elements to the new space!!!*
-#+begin_src rust
+#+begin_src rust :export both
 fn main() {
     let mut v = vec![1, 2, 3, 4, 5];
 
@@ -78,7 +78,7 @@ fn main() {
 #+end_src
 
 + iterating:
-#+begin_src rust
+#+begin_src rust :export both
 fn main() {
     let mut v = vec![100, 32, 57];
 
@@ -105,7 +105,7 @@ fn main() {
 : i  =  57 // i' = 107
 
 ** Store multiple types with enums
-#+begin_src rust
+#+begin_src rust :export both
 fn main() {
     enum SpreadsheetCell {
         Int(i32),
@@ -122,3 +122,54 @@ fn main() {
 #+end_src
 
 * UTF-8 enconded text with strings
++ ~str~ is a /string slice/, the only string type in the core language
+  - usually seen in its borrowed form ~&str~
+  - [[./04-understanding_ownership.org][string slices]] are references to some UTF-8 encoded string data stored elsewhere
+  - string literals, for example, are stored in the program's binary and are therefore string slices
+
++ the ~String~ type, provided by std lib, a string type that is
+  - growable
+  - mutable
+  - owned
+  - UTF-8 encoded
+
++ creating:
+#+begin_src rust :export both
+fn main() {
+    // String
+    let mut s = String::new();
+
+    // string slice
+    let data = "initial contents";
+    let s = data.to_string();
+
+    // also works with string literals
+    let s = "initial contents".to_string();
+
+    // String from string literal
+    let s = String::from("initial contents");
+}
+#+end_src
+
++ updating:
+  - can use ~+~ operator or ~format!~ macro to concatenate ~String~ values
+#+begin_src rust :export both
+fn main() {
+    let mut s = String::from("foo");
+    s.push_str("bar");
+    println!("s = {}", s);
+
+    // push_str() takes string slices so as not to take ownership
+    let mut s1 = String::from("foo");
+    let s2 = "bar";
+    s1.push_str(s2);
+    println!("s1 = {}", s1);
+    // that way, we can still use s2
+    println!("s2 = {}", s2);
+}
+#+end_src
+
+#+RESULTS:
+: s = foobar
+: s1 = foobar
+: s2 = bar
