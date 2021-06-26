@@ -122,6 +122,10 @@ fn main() {
 #+end_src
 
 * UTF-8 enconded text with strings
++ Rust has chosen to make the correct handling of String data the default behavior for all Rust programs, which means programmers have to put more thought into handling UTF-8 data upfront.
+  - this trade-off exposes more of the complexity of strings than is apparent in other programming languages,
+  - but it prevents you from having to handle errors involving non-ASCII characters later in your development life cycle
+
 + ~str~ is a /string slice/, the only string type in the core language
   - usually seen in its borrowed form ~&str~
   - [[./04-understanding_ownership.org][string slices]] are references to some UTF-8 encoded string data stored elsewhere
@@ -153,6 +157,7 @@ fn main() {
 
 + updating:
   - can use ~+~ operator or ~format!~ macro to concatenate ~String~ values
+  - use ~format!~ to concat more than 2 strings, or if you don't want to transfer ownership
 #+begin_src rust :exports both
 fn main() {
     let mut s = String::from("foo");
@@ -166,6 +171,30 @@ fn main() {
     println!("s1 = {}", s1);
     // that way, we can still use s2
     println!("s2 = {}", s2);
+
+    // push() takes single char
+    s1.push('r');
+    println!("s2 = {}", s1);
+
+    // + operator
+    let s1 = String::from("Hello, ");
+    let s2 = String::from("world!");
+    let s3 = s1 + &s2; // note s1 has been moved here and can no longer be used
+    println!("s3 = {}", s3);
+    // cant do this
+    // println!("s1 = {}", s1);
+
+    // format!
+    let s1 = String::from("tic");
+    let s2 = String::from("tac");
+    let s3 = String::from("toe");
+
+    // !!! doesnt take ownership of any of its arguments !!!
+    let s = format!("{}-{}-{}", s1, s2, s3);
+    println!("s = {}", s);
+    println!("s1 = {}", s1);
+    println!("s2 = {}", s2);
+    println!("s3 = {}", s3);
 }
 #+end_src
 
@@ -173,3 +202,186 @@ fn main() {
 : s = foobar
 : s1 = foobar
 : s2 = bar
+: s2 = foobarr
+: s3 = Hello, world!
+: s = tic-tac-toe
+: s1 = tic
+: s2 = tac
+: s3 = toe
+
+** Internal representation
++ rust strings don't support indexing
++ ~String~ is a wrapper over a ~Vec<u8>~
++ some symbols take 2 bytes (it's more complicated than that) when encoded in UTF-8
+  - you have to walk through the contents from the beginning to determine how many chars there are
+  - *for this reason, indexing is not supported!*
+
+** String slices
++ you can use ~[]~ with a range to create a string slice containing particular bytes
++ *must be valid char boundary*
+#+begin_src rust :exports both
+fn main() {
+    let hello = "Здравствуйте";
+    let s = &hello[0..4];
+    println!("hello = {}\ns = {}", hello, s);
+}
+#+end_src
+
+#+RESULTS:
+: hello = Здравствуйте
+: s = Зд
+
+** Iterating over strings
++ operation in individual unicode scalar values
+#+begin_src rust :exports both
+fn main() {
+    for c in "नमस्ते".chars() {
+        println!("{}", c);
+    }
+}
+#+end_src
+
+#+RESULTS:
+: न
+: म
+: स
+: ्
+: त
+: े
+
++ operation in individual bytes
+#+begin_src rust :exports both
+fn main() {
+    for c in "न्ते".bytes() {
+        println!("{}", c);
+    }
+}
+#+end_src
+
+#+RESULTS:
+#+begin_example
+224
+164
+168
+224
+165
+141
+224
+164
+164
+224
+165
+135
+#+end_example
+
+* Hash Maps
++ like vectors, hash maps store data on the /heap/
++ creating and adding to:
+#+begin_src rust :exports both
+use std::collections::HashMap;
+
+fn main() {
+    let mut scores = HashMap::new();
+
+    scores.insert(String::from("blue"), 10);
+    scores.insert(String::from("yellow"), 50);
+
+    // creating using iterators and collect
+    let teams = vec![String::from("blue"), String::from("yellow")];
+    let initial_scores = vec![10, 50];
+
+    // zip creates a vector of tuples
+    // type notation needed here because .collect() can ret diff types
+    let mut scores: HashMap<_, _> =
+        teams.into_iter().zip(initial_scores.into_iter()).collect();
+}
+#+end_src
+
++ ownership
+  - for types with that implement the ~Copy~ trait, the values are copied into the hash map
+  - for owned values like ~String~, the values will be moved and the hash map will be the owner of those values
+#+begin_src rust :exports both
+use std::collections::HashMap;
+
+fn main() {
+    let field_name = String::from("favourite color");
+    let field_value = String::from("blue");
+
+    let mut map = HashMap::new();
+    map.insert(field_name, field_value);
+    // now we cant use field_name or field_value
+}
+#+end_src
+
++ Accessing values
+  - we can get a value out of the hash map by providing its key to the ~get~ method
+#+begin_src rust :exports both
+use std::collections::HashMap;
+
+fn main() {
+    let mut scores = HashMap::new();
+
+    scores.insert(String::from("blue"), 10);
+    scores.insert(String::from("yellow"), 50);
+
+    let team_name = String::from("blue");
+    let score = scores.get(&team_name).unwrap();
+
+    println!("name = {}\nscore = {}", team_name, score);
+
+    // iterating
+    for (key, value) in &scores {
+        println!("{}: {}", key, value);
+    }
+}
+#+end_src
+
+#+RESULTS:
+: name = blue
+: score = 10
+: yellow: 50
+: blue: 10
+
++ insert only if key has no value
+#+begin_src rust :exports both
+use std::collections::HashMap;
+
+fn main() {
+    let mut scores = HashMap::new();
+    scores.insert(String::from("blue"), 10);
+
+    scores.entry(String::from("yellow")).or_insert(50);
+    scores.entry(String::from("blue")).or_insert(50);
+
+    println!("{:?}", scores);
+}
+#+end_src
+
+#+RESULTS:
+: {"blue": 10, "yellow": 50}
+
++ update value based on old value
+#+begin_src rust :exports both
+use std::collections::HashMap;
+
+fn main() {
+    let text = "hello world wolderful world";
+
+    let mut map = HashMap::new();
+
+    // counts frequency of words
+    for word in text.split_whitespace() {
+        let count = map.entry(word).or_insert(0);
+        ,*count += 1;
+    }
+
+    println!("word_count = {:#?}", map);
+}
+#+end_src
+
+#+RESULTS:
+: word_count = {
+:     "world": 2,
+:     "wolderful": 1,
+:     "hello": 1,
+: }
