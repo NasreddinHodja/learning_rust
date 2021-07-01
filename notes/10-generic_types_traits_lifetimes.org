@@ -1,0 +1,358 @@
+#+TITLE: Generic types, traits, and lifetimes
+
+* Generic data types
++ *no runtime cost!!!*
+
+** in functions
+#+begin_src rust :exports both
+fn largest<T>(list: &[T]) -> T {
+    let mut largest = list[0];
+
+    for &item in list {
+        if item > largest {
+            largest = item;
+        }
+    }
+
+    largest
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+    let result = largest(&number_list);
+    println!("the largest number is {}", result);
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+    let result = largest(&char_list);
+    println!("the largest char is {}", result);
+}
+#+end_src
+
++ wich does not compile!
+  - we must restrict to types that implement partial ordering.....
+
+** In structs
+#+begin_src rust
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+fn main() {
+    let integer = Point { x: 5, y: 10 };
+    let float = Point { x: 1.0, y: 4.0 };
+}
+#+end_src
+
+** In enums
+#+begin_src rust
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+#+end_src
+
+** In methods
+#+begin_src rust
+struct Point<T, U> {
+    x: T,
+    y: U,
+}
+
+impl<T, U> Point<T, U> {
+    fn mixup<V, W>(self, other: Point<V, W>) -> Point<T, W> {
+        Point {
+            x: self.x,
+            y: other.y,
+        }
+    }
+}
+
+fn main() {
+    let p1 = Point { x: 5, y: 10.4 };
+    let p2 = Point { x: "Hello", y: 'c' };
+
+    let p3 = p1.mixup(p2);
+
+    println!("p3.x = {}, p3.y = {}", p3.x, p3.y);
+}
+#+end_src
+
+#+RESULTS:
+: p3.x = 5, p3.y = c
+
+* Traits
++ tells the compiler about functionality a particular type has and can share with others
+
+** Definition
+Example:
++ we have multiple structs that hold various kinds and amounts of text
+  - ~NewsArticle~ holds a news story in a particular location
+  - ~Tweet~ holds at most 280 chars along with metadata
++ we want to make a media aggregator lib that can display summaries of data that might be stored in a ~NewsArticle~ or a ~Tweet~ instance
++ to do this, we need a summary from each type, and we need to request that summary by calling a ~summarize~ method on an instance
+#+begin_src rust
+pub trait Summary {
+    fn summarize(&self) -> String;
+}
+#+end_src
+
+** Implementing a Trait on a Type
+#+begin_src rust :exports both
+pub trait Summary {
+    // default implementation
+    fn summarize(&self) -> String {
+        String::from("(Read more...)")
+    }
+}
+
+pub struct NewsArticle {
+    pub headline: String,
+    pub location: String,
+    pub author: String,
+    pub content: String,
+}
+
+impl Summary for NewsArticle {
+    fn summarize(&self) -> String {
+        format!("{}, by {} ({})", self.headline, self.author, self.location)
+    }
+}
+
+pub struct Tweet {
+    pub username: String,
+    pub content: String,
+    pub reply: bool,
+    pub retweet: bool,
+}
+
+impl Summary for Tweet {
+    fn summarize(&self) -> String {
+        format!("{}: {}", self.username, self.content)
+    }
+}
+
+fn main() {
+    let tweet = Tweet {
+        username: String::from("zinedine"),
+        content: String::from("yyYUUUUHHhh yuh",),
+        reply: false,
+        retweet: false,
+    };
+
+    println!("1 new tweet: {}", tweet.summarize());
+}
+#+end_src
+
+#+RESULTS:
+: 1 new tweet: zinedine: yyYUUUUHHhh yuh
+
+** Traits as parameters
+#+begin_src rust
+pub fn notify(item: &impl Summary) {
+    println!("Breaking news {}", item.summarize());
+}
+#+end_src
+
++ *trait bound syntax*
+  - the previous syntax is syntax sugar for
+#+begin_src rust
+pub fn notify<T: Summary>(item: &T) {
+    println!("Breaking news! {}", item.summarize());
+}
+#+end_src
+
++ multiple trait bounds:
+#+begin_src rust
+pub fn notify(item: &(impl Summary + Display)) {}
+// or
+pub fn notify<T: Summary + Display>(item: &T) {}
+#+end_src
+
++ the ~where~ clause makes for clearer trait bounds
+#+begin_src rust
+fn some_function<T: Diplay + Clone, U: Clone + Debug>(t: &T, u: &U) -> i32 {}
+
+fn some_function<T, U>(t: &T, u: &U) -> i32
+    where T: Display + Clone,
+          U: Clone + Debug
+{}
+#+end_src
+
+** Returning types that implement traits
++ doesn't work if we can return multiple types!
+#+begin_src rust
+fn returns_summarizable() -> impl Summary {
+    Tweet {
+        username: String::from("horse_ebooks"),
+        content: String::from("fooooooooooke yal"),
+        reply: false,
+        retweet: false,
+    }
+}
+#+end_src
+
+** Fixing ~largest~ with trait bounds
++ obs: use ~Clone~ trait if we want ~largest~ to take ownership
+  - potentially making more heap allocations
+#+begin_src rust :exports both
+fn largest<T: PartialOrd + Copy>(list: &[T]) -> T {
+    let mut largest = list[0];
+    for &item in list {
+        if item > largest {
+            largest = item;
+        }
+    }
+    largest
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+    let result = largest(&number_list);
+    println!("the largest number is {}", result);
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+    let result = largest(&char_list);
+    println!("the largest char is {}", result);
+}
+#+end_src
+
+#+RESULTS:
+: the largest number is 100
+: the largest char is y
+
+** Conditional implementation of methods
++ called /blanket implementation/
+#+begin_src rust :exports both
+use std::fmt::Display;
+
+struct Pair<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Pair<T> {
+    fn new(x: T, y: T) -> Self {
+        Self { x, y }
+    }
+}
+
+impl<T: Diplay + PartialOrd> Pair<T> {
+    fn cmp_display(&self) {
+        if self.x >= self.y {
+            println!("the largest number is x = {}", self.x);
+        } else {
+            println!("the largest number is y = {}", self.y);
+        }
+    }
+}
+#+end_src
+
+* Lifetimes
++ every ref in rust has a /lifetime/, the scope for which that reference is valid
++ most of the time, they are implicit and inferred, just like most of the time, types are inferred
++ just like types, we must annotatee lifetimes when the lifetimes of refs could be related in a few different ways
+
+** Preventing dangling refs
++ following code has a dangling ref
++ the compiler has a /borrow checker/ that compares scopes to determine whether all borrows are valid
++ here we can also see the lifetimes
+#+begin_src rust
+{
+    let r;                // ---------+-- 'a
+                          //          |
+    {                     //          |
+        let x = 5;        // -+-- 'b  |
+        r = &x;           //  |       |
+    }                     // -+       |
+                          //          |
+    println!("r: {}", r); //          |
+}                         // ---------+
+#+end_src
+
+** Generic lifetimes in functions
++ if we try to do the following without lifetime annotations, the code wont compile
+  - rust doesn't know if we are returning a ref to x or to y
+#+begin_src rust :exports both
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+#+end_src
+
+** Lifetime annotation in structs
++ when a struct holds a ref, its def need a lifetime annotation
+#+begin_src rust
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
+
+fn main() {
+    let novel = String::from("call me ishmael. some years ago...");
+    let first_sentence = novel.split('.').next().expect("could not find a '.'");
+    let i = ImportantExcerpt {
+        part: first_sentence,
+    };
+}
+#+end_src
+
+** Lifetime elision
+There are 3 rules (elision rules) for inferred lifetime annotations:
+1. each param gets its own lifetime param
+#+begin_src rust
+fn foo<'a>(x: &'a i32)
+// or
+fn foo<'a, 'b>(x: &'a i32, y: &'b i32)
+#+end_src
+2. if there is 1 input lifetime param, that lifetime is assigned to all output para
+#+begin_src rust
+fn foo<'a>(x: &'a i32)
+// or
+fn foo<'a, 'b>(x: &'a i32, y: &'b i32)
+#+end_src
+1. if there are multiple input lifetime params, but one is ~&self~ or ~&mut self~ because it's a method, the lifetime of self is assigned to all output lifetime params
+
+** Lifetime annotations in method definitions
++ lifetime names for struct fields always need to be declared after the ~impl~ keyword and then used after the struct's name, because those lifetimes are part of the struct's type
++ methods may or may not be tied to those lifetimes
+#+begin_src rust
+impl<'a> ImportantExcerpt<'a> {
+    fn level(&self) -> i32 {
+        3
+    }
+
+    fn announce_and_return_part(&self, announcement: &str) -> &str {
+        println!("Attention please: {}", announcement);
+        self.part
+    }
+}
+#+end_src
+
+** Static lifetime
++ ~'static~ means that this ref /can/ life for the entire duration of the program
++ all string literals havet he ~'static~ lifetime
++ you might get it sugested from the compiler, but use it in last case
+
+* Generic type params, trait bounds, and lifetimes together
+#+begin_src rust
+use std::fmt::Display;
+
+fn longest_with_an_announcement<'a, T>(
+    x: &'a str,
+    y: &'a str,
+    ann: T,
+) -> &'a str
+where
+    T: Display,
+{
+    println!("Announcement! {}", ann);
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+#+end_src
