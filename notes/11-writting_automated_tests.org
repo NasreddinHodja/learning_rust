@@ -1,0 +1,203 @@
+#+TITLE: Writting Automated Tests
+
+* How to write tests
++ the bodies of test functions typically perform there three actions:
+  1. set up any needed data or state
+  2. run the code you want to test
+  3. assert the results are what you expect
+
+** The anatomy of a test function
++ a test func is a func that's annotated with the ~test~ /attribute/
+  - attributes a metadata about pieces of rust code
+  - when you run ~cargo test~, rust builds a test runner binary that runs the funtions annotated with ~test~ attr
+
++ lets create a lib project called ~adder~
+  : $ cargo new adder --lib
+  :      Created library `adder` project
+  : $ cd adder
+
++ /src/lib.rs/:
+#+begin_src rust
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        assert_eq!(2 + 2, 4);
+    }
+
+    #[test]
+
+    fn it_doesnt_work() {
+        panic!("make this test fail");
+    }
+}
+#+end_src
+
++ we can run a test
+: $ cargo test
+:    Compiling adder v0.1.0 (file:///projects/adder)
+:     Finished test [unoptimized + debuginfo] target(s) in 0.72s
+:      Running target/debug/deps/adder-92948b65e88960b4
+:
+: running 2 tests
+: test tests::another ... FAILED
+: test tests::exploration ... ok
+:
+: failures:
+:
+: ---- tests::another stdout ----
+: thread 'main' panicked at 'Make this test fail', src/lib.rs:10:9
+: note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+:
+:
+: failures:
+:     tests::another
+:
+: test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+:
+: error: test failed, to rerun pass '--lib'
++ we can ignore or measure (benchmark) individual tests
++ ~Doc-tests~ are the documentation tests
+
++ ~assert!~ macro ensures that something evaluates to ~true~
+  - variants: ~assert_eq!~, ~assert_ne!~
+  - can also have custom error messages
+#+begin_src rust
+assert!(
+    result.contains("Carol");
+    "Greeting did not contain name, value was `{}`",
+    result
+);
+#+end_src
+
++ ~should_panic~ checks for panics
+  - ~expected~ should hold a substring of the expected panic message
+#+begin_src rust
+pub struct Guess {
+    value: i32,
+}
+
+impl Guess {
+    pub fn new(value: i32) -> Guess {
+        if value < 1 {
+            panic!("Guess value must be greater than or equal to 1, got {}.", value);
+        } else if value > 100 {
+            panic!("Guess value must be less than or equal to 100, got {}.", value);
+        }
+
+        Guess { value }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic(expected = "Guess value must be less than or equal to 100")]
+    fn greater_than_100() {
+        Guess::new(200);
+    }
+}
+#+end_src
+
+** Using ~Result<T, E>~ in tests
++ writing tests so they return a ~Result<T, E>~ enables you to use the ~?~ operator in the body of tests
+#+begin_src rust
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() -> Result<(), String> {
+        if 2 + 4 == 4 {
+            Ok(())
+        } else {
+            Err(String::from("two plus two does not equal four"))
+        }
+    }
+}
+#+end_src
+
+* Controlling how tests are run
+: $ cargo test -- [options]
+
++ running in parallel or consecutively
+: $ cargo test -- --test-threads=1
+
++ showing function output
+: $ cargo test -- --show-output
+
++ by name
+  - running multiple: also matches substring in func names
+: $ cargo test [name]
+
++ ignore unsell requested
+  - can be executed by ~cargo test -- --ignored
+#+begin_src rust
+#[test]
+fn it_works() {
+    assert_eq!(2 + 2, 4);
+}
+
+#[test]
+#[ignore]
+fn expensive_test() {
+    // code that takes time to run
+}
+#+end_src
+
+* Test organization
+** Unit tests
++ test each unit of code in isolation from the rest
++ goes in /src/ dir in each file with the code that they're testing
+  - create module name ~tests~ in each file to contain the test functions ant to annotate the module with ~cfg(test)~
+
+*** Tests module and ~#[cfg(test)]~
++ ~#[cfg(test)]~ tells rust to compile and run the test code only when ~cargo test~
+  - saves compile time and saves space in resulting compiled artifact because tests are not included
+
+*** Testing private functions
++ rust allows it
+
+** Integration tests
++ tests if parts of lib are working together correctly
++ entirely external to lib
++ use lib in same way other code would
+  - therefore, can only call funcs part of the public API
+
+*** /tests/ directory
++ we create a /tests/ dir at the top level of our project dir, next to /src/
++ we can create as many test files as we want, cargo will compile each one to an individual create
++ ex: /tests/integration_tests.rs/
+#+begin_src rust
+use adder;
+
+#[test]
+fn it_adds_two() {
+    assert_eq!(4, adder::add_two(2));
+}
+#+end_src
+
++ we can still specify a test crate or function to run by:
+: $ cargo test --test integration_test
+
+*** Submodules in integration tests
++ treating each integration test file as its own crate is useful to crete scopes that are more like the way end users will be using your crate
++ however, this means files in the /tests/ direcotry don't chare the same behavior as files in /src/ do
++ this diff behavior is most noticeable when you have a set of helper functions that would be useful in multiple integration teste files and you try to extract them into a common module
++ to avoid having this file /common.rs/ to appear in the test output, we create /tests/common/mod.rs/
++ then, we can use it in any /tests/integration_test.rs/
+#+begin_src rust
+use adder;
+
+mod common;
+
+#[test]
+fn it_adds_two() {
+    common::setup();
+    assert_eq!(4, adder::add_two(2));
+}
+#+end_src
+
+*** Integration tests for binary crates
++ if our project is a binary crate, we cant create integration tests in a /tests/ folder, binary crates are meant to be run on their own
++ /main.rs/ will always use /lib.rs/ functionality in /lib.rs/ that would already be tested
