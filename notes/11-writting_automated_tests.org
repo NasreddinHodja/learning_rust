@@ -12,9 +12,12 @@
   - when you run ~cargo test~, rust builds a test runner binary that runs the funtions annotated with ~test~ attr
 
 + lets create a lib project called ~adder~
-  : $ cargo new adder --lib
-  :      Created library `adder` project
-  : $ cd adder
+#+begin_example
+$ cargo new adder --lib
+     Created library `adder` project
+$ cd adder
+#+end_example
+
 
 + /src/lib.rs/:
 #+begin_src rust
@@ -34,28 +37,31 @@ mod tests {
 #+end_src
 
 + we can run a test
-: $ cargo test
-:    Compiling adder v0.1.0 (file:///projects/adder)
-:     Finished test [unoptimized + debuginfo] target(s) in 0.72s
-:      Running target/debug/deps/adder-92948b65e88960b4
-:
-: running 2 tests
-: test tests::another ... FAILED
-: test tests::exploration ... ok
-:
-: failures:
-:
-: ---- tests::another stdout ----
-: thread 'main' panicked at 'Make this test fail', src/lib.rs:10:9
-: note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-:
-:
-: failures:
-:     tests::another
-:
-: test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-:
-: error: test failed, to rerun pass '--lib'
+#+begin_example
+$ cargo test
+   Compiling adder v0.1.0 (file:///projects/adder)
+    Finished test [unoptimized + debuginfo] target(s) in 0.72s
+     Running target/debug/deps/adder-92948b65e88960b4
+
+running 2 tests
+test tests::another ... FAILED
+test tests::exploration ... ok
+
+failures:
+
+---- tests::another stdout ----
+thread 'main' panicked at 'Make this test fail', src/lib.rs:10:9
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::another
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass '--lib'
+#+end_example
+
 + we can ignore or measure (benchmark) individual tests
 + ~Doc-tests~ are the documentation tests
 
