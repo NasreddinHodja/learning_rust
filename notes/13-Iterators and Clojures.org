@@ -1,0 +1,105 @@
+#+TITLE: Iterators And Clojures
+
+* Closures
++ anonymous funcs that can caputure vars from the scope in which they're defined
+
+** Abstraction of Behavior with Clojures
+Example:
++ making an app to gen custom exercise workout plans
++ we have an algorithm that takes a few seconds and we want to call it only when we need to and only call it once so we don't make the user wait more than necessary
+#+begin_src rust
+use std::thread;
+use std::time::Duration;
+
+fn simulated_expensive_calculation(intensiti: u32) -> u32 {
+    println!("calculating slowly...");
+    thread::sleep(Duration::from_secs(2));
+    intensity
+}
+
+fn generate_workout(intensity: u32, random_number: u32) {
+    let expensive_result = simulated_expesive_calculation(intensity);
+
+    if intensity < 25 {
+        println!("Today, do {} pushups!", expensive_result);
+        println!("Next, do {} situps!", expensive_result);
+    } else {
+        if random_number == 3 {
+            println!("Take a break today! Remember to stay hydrated!");
+        } else {
+            println!("Today, run for {} minutes", expensive_result);
+        }
+    }
+}
+
+fn main() {
+    let simulated_user_specified_value = 10;
+    let simulated_random_number = 7;
+
+    generate_workout(simulated_user_specified_value, simulated_random_number);
+}
+#+end_src
+
+*** Refactoring with clojures
++ a closure can store the code of our ~simulated_expensive_calculation~
+  - now, ~expensive_closure~ contains the /definition/ of an anonymous function
+#+begin_src rust
+use std::thread;
+use std::time::Duration;
+
+fn simulated_expensive_calculation(intensiti: u32) -> u32 {
+    println!("calculating slowly...");
+    thread::sleep(Duration::from_secs(2));
+    intensity
+}
+
+fn generate_workout(intensity: u32, random_number: u32) {
+    let expensive_closure = |num| {
+        println!("calculating slowly...");
+        thread::sleep(Duration::from_secs(2));
+        num
+    };
+
+    if intensity < 25 {
+        println!("Today, do {} pushups!", expensive_clojure(intensity));
+        println!("Next, do {} situps!", expensive_clojure(intensity));
+    } else {
+        if random_number == 3 {
+            println!("Take a break today! Remember to stay hydrated!");
+        } else {
+            println!("Today, run for {} minutes", expensive_clojure(intensity));
+        }
+    }
+}
+
+fn main() {
+    let simulated_user_specified_value = 10;
+    let simulated_random_number = 7;
+
+    generate_workout(simulated_user_specified_value, simulated_random_number);
+}
+#+end_src
+
+** Closure type inference and annotation
+Closures don't require you to annotate the types of the params or the return value like ~fn~ funcs do.
++ type annotations are required on functions because they're part of an explicit interface exposed to your users
+  - defining this interface rigidly is important for ensuring that everyone agrees on what types of values a function uses and returns
++ closures aren't used in an exposed interface like this: they're stored in variables and used without naming them and exposing them to users of our library
++ closures are usually short and relevant only within a narrow context rather than in any arbitrary scenario
+  - within these limited contexts, the compiler is reliably able to infer the types of the parameters and the return type, similar to how it’s able to infer the types of most variables
++ we can add type annotations if we want to increase explicitness and clarity at the cost of being more verbose than is strictly necessary
+#+begin_src rust
+let expensive_closure = |num: u32| -> u32 {
+    // ...
+};
+
+// functions vs closures
+fn  add_one_v1   (x: u32) -> u32 { x + 1 }
+let add_one_v2 = |x: u32| -> u32 { x + 1 };
+let add_one_v3 = |x|             { x + 1 };
+let add_one_v4 = |x|               x + 1  ;
+#+end_src
+
+*OBS*: if we try to use same clojure with 2 diff types, we get error
+
+** Storing closures using generic params and the ~Fn~ traits
