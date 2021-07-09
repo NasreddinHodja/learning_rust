@@ -103,3 +103,133 @@ let add_one_v4 = |x|               x + 1  ;
 *OBS*: if we try to use same clojure with 2 diff types, we get error
 
 ** Storing closures using generic params and the ~Fn~ traits
++ when we reformulated the code to use a closure, we still call it multiple times
++ a solution to this is creating a struct that holds the closure and the cached result
+  - this is /memoization/ + /layzy evaluation/
+
++ to hold a closure, we need to specify the type of the closure
+  - each closure has its own unique anonymous type: that is, even if two closures have the same signature, their types are still considred diff
+  - to define structs, enums, or func params that use closures, we use [[./10-Generic Types, Traits, Lifetimes.org][generics and trait bounds]]
+
++ the ~Fn~ traits are provived by the std lib
++ all closures implement at least one of the traits: ~Fn~, ~FnMut~, or ~FnOnce~ (for now, we'll use ~Fn~ only)
+
+#+begin_src rust
+use std::thread;
+use std::time::Duration;
+
+struct Cacher<T>
+where
+    T: Fn(u32) -> u32,
+{
+    calculation: T,
+    value: Option<u32>,
+}
+
+impl<T> Cacher<T>
+where
+    T: Fn(u32) -> u32,
+{
+    fn new(calculation: T) -> Cacher<T> {
+        Cacher {
+            calculation,
+            value: None,
+        }
+    }
+
+    fn value(&mut self, arg: u32) -> u32 {
+        match self.value {
+            Some(v) => v,
+            None => {
+                let v = (self.calculation)(arg);
+                self.value = Some(v);
+                v
+            }
+        }
+    }
+}
+
+fn generate_workout(intensity: u32, random_number: u32) {
+    let mut expensive_result = Cacher::new(|num| {
+        println!("calculating slowly...");
+        thread::sleep(Duration::from_secs(2));
+        num
+    });
+
+    if intensity < 25 {
+        println!("Today, do {} pushups!", expensive_result.value(intensity));
+        println!("Today, do {} situps!", expensive_result.value(intensity));
+    } else {
+        if random_number == 3 {
+            println!("Take a break today! Remember to stay hydrated!");
+        } else {
+            println!(
+                "Today, run for {} minutes!",
+                expensive_result.value(intensity)
+            );
+        }
+    }
+}
+
+fn main() {
+    let simulated_user_specified_value = 10;
+    let simulated_random_number = 7;
+
+    generate_workout(simulated_user_specified_value, simulated_random_number);
+}
+#+end_src
+
+#+RESULTS:
+: calculating slowly...
+: Today, do 10 pushups!
+: Today, do 10 situps!
+
+** Limitations of the ~Cacher~ implementation
++ the ~Cacher~ instance assumes we always get the same value for the parameter ~arg~ to the ~value~ method
+  - try modifying the ~Cacher~ struct to hold a [[./08-Common Collections.org][hash map]]
+
++ the ~Cacher~ implem only accepts closures that take on param of type ~u32~ and return a ~u32~
+  - try introducing more generic params to increase flexibility of the Cacher
+
+** Capturing the environment
++ closures can capture their env and access vars from the scope in which they're defined
+  - environment = the closure's scope
+#+begin_src rust
+fn main() {
+    let x = 4;
+
+    let equal_to_x = |z| z == x;
+
+    let y = 4;
+
+    assert!(equal_to_x(y));
+}
+#+end_src
+
++ closures can capture values in three wyas, which directly map to the three ways a function can take a parameter: taking ownership, borrowing mutably, and borrowing immutably
+  - ~FnOnce~ consumes the var it captures
+    * can't take the ownership of same var more than once, so it can be called only once
+  - ~FnMut~ can change the env because it mutably borrows values
+  - ~Fn~ borrows vals immutably
+
++ rust infers which trait to use based on how the closure uses the values from the env
+  - all closures implement ~FnOnce~ because they can all be called at least once
+  - closures that don't *move* the captured vars also implement ~FnMut~
+  - closures that don't need mutable access to the captured vars also implement ~Fn~
+
++ example of ~move~ closure
+#+begin_src rust
+fn main() {
+    let x = vec![1, 2, 3];
+
+    let equal_to_x = move |z| z == x;
+    // doesn't compile
+    println!("can't use x here: {:?}", x);
+
+    let y = vec![1, 2, 3];
+
+    assert!(qual_to_x(y));
+}
+#+end_src
+
+* Iterators
