@@ -1,9 +1,9 @@
-#+TITLE: Iterators And Clojures
+#+TITLE: Iterators And Closures
 
 * Closures
 + anonymous funcs that can caputure vars from the scope in which they're defined
 
-** Abstraction of Behavior with Clojures
+** Abstraction of Behavior with closures
 Example:
 + making an app to gen custom exercise workout plans
 + we have an algorithm that takes a few seconds and we want to call it only when we need to and only call it once so we don't make the user wait more than necessary
@@ -40,7 +40,7 @@ fn main() {
 }
 #+end_src
 
-*** Refactoring with clojures
+*** Refactoring with closures
 + a closure can store the code of our ~simulated_expensive_calculation~
   - now, ~expensive_closure~ contains the /definition/ of an anonymous function
 #+begin_src rust
@@ -61,13 +61,13 @@ fn generate_workout(intensity: u32, random_number: u32) {
     };
 
     if intensity < 25 {
-        println!("Today, do {} pushups!", expensive_clojure(intensity));
-        println!("Next, do {} situps!", expensive_clojure(intensity));
+        println!("Today, do {} pushups!", expensive_closure(intensity));
+        println!("Next, do {} situps!", expensive_closure(intensity));
     } else {
         if random_number == 3 {
             println!("Take a break today! Remember to stay hydrated!");
         } else {
-            println!("Today, run for {} minutes", expensive_clojure(intensity));
+            println!("Today, run for {} minutes", expensive_closure(intensity));
         }
     }
 }
@@ -100,7 +100,7 @@ let add_one_v3 = |x|             { x + 1 };
 let add_one_v4 = |x|               x + 1  ;
 #+end_src
 
-*OBS*: if we try to use same clojure with 2 diff types, we get error
+*OBS*: if we try to use same closure with 2 diff types, we get error
 
 ** Storing closures using generic params and the ~Fn~ traits
 + when we reformulated the code to use a closure, we still call it multiple times
